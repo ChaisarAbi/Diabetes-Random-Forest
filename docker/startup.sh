@@ -72,8 +72,8 @@ chmod -R 755 /var/www/html/writable
 # Change to application directory
 cd /var/www/html
 
-# Run database migrations if needed
-if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+# Run database migrations if needed (disabled by default for now)
+if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     echo "Running database migrations..."
     if php spark migrate --force; then
         echo "Database migrations completed successfully"
@@ -82,8 +82,8 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     fi
 fi
 
-# Run database seeders if needed
-if [ "${RUN_SEEDERS:-true}" = "true" ]; then
+# Run database seeders if needed (disabled by default for now)
+if [ "${RUN_SEEDERS:-false}" = "true" ]; then
     echo "Running database seeders..."
     if php spark db:seed PetugasSeeder; then
         echo "Database seeders completed successfully"
