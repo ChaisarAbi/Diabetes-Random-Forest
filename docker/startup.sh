@@ -197,4 +197,34 @@ if [ "${RUN_SEEDERS:-false}" = "true" ]; then
 fi
 
 echo "Starting Apache..."
-exec apache2-foreground
+
+# Start Apache in background to test it
+echo "Starting Apache in background for testing..."
+apache2-foreground &
+APACHE_PID=$!
+
+# Wait a bit for Apache to start
+sleep 5
+
+# Test if Apache is responding
+echo "Testing Apache response..."
+if curl -f http://localhost/ > /dev/null 2>&1; then
+    echo "✅ Apache is running and responding correctly"
+    
+    # Test our test.php file
+    if curl -f http://localhost/test.php > /dev/null 2>&1; then
+        echo "✅ test.php is accessible"
+    else
+        echo "⚠️ test.php is not accessible (might be 404 or error)"
+    fi
+else
+    echo "❌ Apache is not responding to requests"
+    echo "Checking Apache process..."
+    ps aux | grep apache
+    echo "Apache error log (last 20 lines):"
+    tail -20 /var/log/apache2/error.log || echo "No error log found"
+fi
+
+# Bring Apache back to foreground
+echo "Bringing Apache to foreground..."
+wait $APACHE_PID
