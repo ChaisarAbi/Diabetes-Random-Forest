@@ -134,6 +134,38 @@ if (!\$socket) {
 }
 "; then
     echo "Database connection test passed"
+    
+    # Create tables using raw SQL (bypass CodeIgniter migrations)
+    echo "Creating database tables..."
+    if command -v mysql >/dev/null 2>&1; then
+        # Use mysql client if available
+        if mysql -h "${DB_HOST}" -u "${DATABASE_USERNAME:-diabetes}" -p"${DATABASE_PASSWORD:-leaveempty1}" "${DATABASE_NAME:-diabetes}" < /var/www/html/docker/create-tables.sql 2>&1; then
+            echo "Database tables created successfully"
+        else
+            echo "WARNING: Failed to create tables with mysql client, trying PHP..."
+            # Fallback to PHP
+            if php -r "
+            \$conn = new mysqli('${DB_HOST}', '${DATABASE_USERNAME:-diabetes}', '${DATABASE_PASSWORD:-leaveempty1}', '${DATABASE_NAME:-diabetes}', ${DATABASE_PORT:-3306});
+            if (\$conn->connect_error) {
+                echo 'PHP MySQL Connection failed: ' . \$conn->connect_error . PHP_EOL;
+                exit(1);
+            }
+            \$sql = file_get_contents('/var/www/html/docker/create-tables.sql');
+            if (\$conn->multi_query(\$sql)) {
+                echo 'Tables created successfully using PHP' . PHP_EOL;
+            } else {
+                echo 'Error creating tables: ' . \$conn->error . PHP_EOL;
+            }
+            \$conn->close();
+            "; then
+                echo "Database tables created successfully using PHP"
+            else
+                echo "WARNING: Failed to create tables using PHP"
+            fi
+        fi
+    else
+        echo "WARNING: mysql client not found, skipping table creation"
+    fi
 else
     echo "WARNING: Database connection test failed"
 fi
