@@ -55,13 +55,14 @@ RUN docker-php-ext-install \
 # Install and configure Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Upgrade pip first, then install Python ML dependencies with very compatible versions
-RUN pip3 install --no-cache-dir --upgrade pip && \
+# Check Python version and install compatible ML packages
+RUN python3 --version && \
+    pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
     pip3 install --no-cache-dir \
-    numpy==1.21.6 \
-    pandas==1.3.5 \
-    scikit-learn==1.0.2 \
-    joblib==1.1.0
+    numpy \
+    pandas \
+    scikit-learn \
+    joblib
 
 # Enable Apache modules
 RUN a2enmod rewrite headers
@@ -81,12 +82,12 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Create Python virtual environment for ML
 RUN python3 -m venv /opt/ml-venv \
-    && /opt/ml-venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/ml-venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel \
     && /opt/ml-venv/bin/pip install --no-cache-dir \
-        numpy==1.21.6 \
-        pandas==1.3.5 \
-        scikit-learn==1.0.2 \
-        joblib==1.1.0
+        numpy \
+        pandas \
+        scikit-learn \
+        joblib
 
 # Copy Python ML files
 COPY app/Python /var/www/html/app/Python
