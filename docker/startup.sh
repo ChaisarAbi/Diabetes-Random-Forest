@@ -140,20 +140,26 @@ fi
 # Run database migrations if needed (enabled by default now)
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "Running database migrations..."
-    if php spark migrate --force; then
+    MIGRATION_OUTPUT=$(php spark migrate --force 2>&1)
+    MIGRATION_EXIT_CODE=$?
+    echo "Migration output: $MIGRATION_OUTPUT"
+    if [ $MIGRATION_EXIT_CODE -eq 0 ]; then
         echo "Database migrations completed successfully"
     else
-        echo "WARNING: Database migrations failed, continuing anyway..."
+        echo "WARNING: Database migrations failed (exit code: $MIGRATION_EXIT_CODE), continuing anyway..."
     fi
 fi
 
 # Run database seeders if needed (enabled by default now)
 if [ "${RUN_SEEDERS:-true}" = "true" ]; then
     echo "Running database seeders..."
-    if php spark db:seed PetugasSeeder; then
+    SEEDER_OUTPUT=$(php spark db:seed PetugasSeeder 2>&1)
+    SEEDER_EXIT_CODE=$?
+    echo "Seeder output: $SEEDER_OUTPUT"
+    if [ $SEEDER_EXIT_CODE -eq 0 ]; then
         echo "Database seeders completed successfully"
     else
-        echo "WARNING: Database seeders failed, continuing anyway..."
+        echo "WARNING: Database seeders failed (exit code: $SEEDER_EXIT_CODE), continuing anyway..."
     fi
 fi
 
