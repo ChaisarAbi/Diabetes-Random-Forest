@@ -16,6 +16,23 @@ if [ -z "${ENCRYPTION_KEY}" ] || [ "${ENCRYPTION_KEY}" = "generate-secure-random
     echo "WARNING: Generated random encryption key. For production, set ENCRYPTION_KEY in environment variables."
 fi
 
+# Debug: Show database environment variables
+echo "=== Database Environment Variables ==="
+echo "DATABASE_HOST: ${DATABASE_HOST:-not set}"
+echo "MYSQL_HOST: ${MYSQL_HOST:-not set}"
+echo "DATABASE_NAME: ${DATABASE_NAME:-not set}"
+echo "DATABASE_USERNAME: ${DATABASE_USERNAME:-not set}"
+echo "======================================"
+
+# Determine database host - prefer MYSQL_HOST, then DATABASE_HOST, then default
+if [ -n "${MYSQL_HOST}" ]; then
+    DB_HOST="${MYSQL_HOST}"
+elif [ -n "${DATABASE_HOST}" ] && [ "${DATABASE_HOST}" != "root" ]; then
+    DB_HOST="${DATABASE_HOST}"
+else
+    DB_HOST="database-project-igd2an"
+fi
+
 # Generate .env file from environment variables
 cat > /var/www/html/.env <<EOF
 #--------------------------------------------------------------------
@@ -34,7 +51,7 @@ app.baseURL = '${APP_BASE_URL:-https://pikoy.aventra.my.id}/'
 # DATABASE
 #--------------------------------------------------------------------
 
-database.default.hostname = ${DATABASE_HOST:-db}
+database.default.hostname = ${DB_HOST}
 database.default.database = ${DATABASE_NAME:-diabetes}
 database.default.username = ${DATABASE_USERNAME:-diabetes}
 database.default.password = '${DATABASE_PASSWORD:-leaveempty1}'
@@ -102,9 +119,9 @@ fi
 cd /var/www/html
 
 # Test database connection first
-echo "Testing database connection..."
+echo "Testing database connection to ${DB_HOST}:${DATABASE_PORT:-3306}..."
 if php -r "
-\$host = '${DATABASE_HOST:-db}';
+\$host = '${DB_HOST}';
 \$port = ${DATABASE_PORT:-3306};
 \$socket = fsockopen(\$host, \$port, \$errno, \$errstr, 5);
 if (!\$socket) {
