@@ -94,6 +94,10 @@ ENV PATH="/opt/ml-venv/bin:${PATH}"
 # Configure Apache ServerName to suppress warning
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
+# Copy startup script
+COPY docker/startup.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh
+
 # Expose port
 EXPOSE 80
 
@@ -101,5 +105,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start Apache with startup script
+CMD ["/usr/local/bin/startup.sh"]
