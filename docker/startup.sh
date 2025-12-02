@@ -7,7 +7,12 @@ echo "Generating .env file from environment variables..."
 
 # Generate a random encryption key if not provided
 if [ -z "${ENCRYPTION_KEY}" ] || [ "${ENCRYPTION_KEY}" = "generate-secure-random-key-32-chars" ]; then
-    ENCRYPTION_KEY=$(openssl rand -hex 32)
+    # Try openssl first, then fallback to /dev/urandom
+    if command -v openssl >/dev/null 2>&1; then
+        ENCRYPTION_KEY=$(openssl rand -hex 32)
+    else
+        ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n' | cut -c1-32)
+    fi
     echo "WARNING: Generated random encryption key. For production, set ENCRYPTION_KEY in environment variables."
 fi
 
@@ -96,8 +101,27 @@ fi
 # Change to application directory
 cd /var/www/html
 
-# Run database migrations if needed (disabled by default for now)
-if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+# Test database connection first
+echo "Testing database connection..."
+if php -r "
+\$host = '${DATABASE_HOST:-db}';
+\$port = ${DATABASE_PORT:-3306};
+\$socket = fsockopen(\$host, \$port, \$errno, \$errstr, 5);
+if (!\$socket) {
+    echo 'ERROR: Cannot connect to database at ' . \$host . ':' . \$port . ' - ' . \$errstr . ' (' . \$errno . ')' . PHP_EOL;
+    exit(1);
+} else {
+    echo 'SUCCESS: Database connection test passed' . PHP_EOL;
+    fclose(\$socket);
+}
+"; then
+    echo "Database connection test passed"
+else
+    echo "WARNING: Database connection test failed"
+fi
+
+# Run database migrations if needed (enabled by default now)
+if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "Running database migrations..."
     if php spark migrate --force; then
         echo "Database migrations completed successfully"
@@ -106,8 +130,8 @@ if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     fi
 fi
 
-# Run database seeders if needed (disabled by default for now)
-if [ "${RUN_SEEDERS:-false}" = "true" ]; then
+# Run database seeders if needed (enabled by default now)
+if [ "${RUN_SEEDERS:-true}" = "true" ]; then
     echo "Running database seeders..."
     if php spark db:seed PetugasSeeder; then
         echo "Database seeders completed successfully"
