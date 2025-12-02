@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e  # Exit on error
+# Don't exit on error - we want to continue even if migrations fail
+# set -e  # Exit on error
 
 echo "=== Starting Diabetes Prediction System ==="
 echo "Generating .env file from environment variables..."
@@ -137,8 +138,8 @@ else
     echo "WARNING: Database connection test failed"
 fi
 
-# Run database migrations if needed (enabled by default now)
-if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+# Run database migrations if needed (disabled by default to prevent crashes)
+if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     echo "Running database migrations..."
     MIGRATION_OUTPUT=$(php spark migrate --force 2>&1)
     MIGRATION_EXIT_CODE=$?
@@ -150,8 +151,8 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     fi
 fi
 
-# Run database seeders if needed (enabled by default now)
-if [ "${RUN_SEEDERS:-true}" = "true" ]; then
+# Run database seeders if needed (disabled by default to prevent crashes)
+if [ "${RUN_SEEDERS:-false}" = "true" ]; then
     echo "Running database seeders..."
     SEEDER_OUTPUT=$(php spark db:seed PetugasSeeder 2>&1)
     SEEDER_EXIT_CODE=$?
