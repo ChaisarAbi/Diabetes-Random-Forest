@@ -8,7 +8,7 @@ FROM php:8.2-apache
 WORKDIR /var/www/html
 
 # Install system dependencies including Python build tools
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     libpng-dev \
@@ -27,11 +27,15 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     make \
+    pkg-config \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install numerical libraries for Python ML (use minimal set)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libblas-dev \
     liblapack-dev \
-    libatlas-base-dev \
     gfortran \
-    pkg-config \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
