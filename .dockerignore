@@ -1,0 +1,112 @@
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PHP
+vendor/
+composer.lock
+composer.phar
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+ml-venv/
+
+# Logs and temp files
+logs/
+*.log
+writable/logs/
+writable/debugbar/
+writable/cache/
+writable/session/
+!writable/session/.gitkeep
+!writable/cache/.gitkeep
+!writable/logs/.gitkeep
+!writable/debugbar/.gitkeep
+
+# Uploads
+writable/uploads/
+!writable/uploads/.gitkeep
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+diabetes.db
+
+# Build artifacts
+builds/
+dist/
+*.zip
+*.tar
+*.tar.gz
+
+# Documentation
+docs/
+*.md
+!README.md
+!DEPLOYMENT.md
+
+# Test files
+tests/
+phpunit.xml
+phpunit.xml.dist
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.test.local
+.env.development.local
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Temporary exclude some files for testing
+!docker/apache.conf
+!docker/mysql-init/
+
+# Application specific exclusions
+adminlte.zip
+demo.php
+test_app.php
+test_connection.php
+spark

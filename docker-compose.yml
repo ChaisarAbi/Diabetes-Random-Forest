@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # PHP Application with Python ML
+  web:
+    build: .
+    container_name: diabetes-predict-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - CI_ENVIRONMENT=production
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8080}
+      - DATABASE_HOST=db
+      - DATABASE_NAME=${DATABASE_NAME:-diabetes_db}
+      - DATABASE_USERNAME=${DATABASE_USERNAME:-diabetes_user}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-diabetes_pass}
+      - DATABASE_PORT=3306
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-secure-encryption-key-here}
+      - SESSION_DRIVER=files
+      - SESSION_SAVE_PATH=/var/www/html/writable/session
+    volumes:
+      - ./writable:/var/www/html/writable
+      - ./public/logo.png:/var/www/html/public/logo.png
+      - ./app/Python:/var/www/html/app/Python
+    depends_on:
+      - db
+    networks:
+      - diabetes-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: diabetes-predict-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpass}
+      - MYSQL_DATABASE=${DATABASE_NAME:-diabetes_db}
+      - MYSQL_USER=${DATABASE_USERNAME:-diabetes_user}
+      - MYSQL_PASSWORD=${DATABASE_PASSWORD:-diabetes_pass}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      - diabetes-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # phpMyAdmin (optional - for database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: diabetes-predict-pma
+    restart: unless-stopped
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - diabetes-network
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  diabetes-network:
+    driver: bridge
