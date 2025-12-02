@@ -1,58 +1,28 @@
 #!/bin/bash
 
-# Don't exit on error - we want to continue even if migrations fail
-# set -e  # Exit on error
-
 echo "=== Starting Diabetes Prediction System ==="
-echo "Generating .env file from environment variables..."
 
-# Generate a random encryption key if not provided
-if [ -z "${ENCRYPTION_KEY}" ] || [ "${ENCRYPTION_KEY}" = "generate-secure-random-key-32-chars" ]; then
-    # Try openssl first, then fallback to /dev/urandom
-    if command -v openssl >/dev/null 2>&1; then
-        ENCRYPTION_KEY=$(openssl rand -hex 32)
-    else
-        ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n' | cut -c1-32)
-    fi
-    echo "WARNING: Generated random encryption key. For production, set ENCRYPTION_KEY in environment variables."
-fi
-
-# Debug: Show database environment variables
-echo "=== Database Environment Variables ==="
-echo "DATABASE_HOST: ${DATABASE_HOST:-not set}"
-echo "MYSQL_HOST: ${MYSQL_HOST:-not set}"
-echo "DATABASE_NAME: ${DATABASE_NAME:-not set}"
-echo "DATABASE_USERNAME: ${DATABASE_USERNAME:-not set}"
-echo "======================================"
-
-# Determine database host - prefer MYSQL_HOST, then DATABASE_HOST, then default
-if [ -n "${MYSQL_HOST}" ]; then
-    DB_HOST="${MYSQL_HOST}"
-elif [ -n "${DATABASE_HOST}" ] && [ "${DATABASE_HOST}" != "root" ]; then
-    DB_HOST="${DATABASE_HOST}"
-else
-    DB_HOST="database-project-igd2an"
-fi
-
-# Generate .env file from environment variables
-cat > /var/www/html/.env <<EOF
+# Generate .env file if not exists
+if [ ! -f /var/www/html/.env ]; then
+    echo "Generating .env file..."
+    cat > /var/www/html/.env <<EOF
 #--------------------------------------------------------------------
 # ENVIRONMENT
 #--------------------------------------------------------------------
 
-CI_ENVIRONMENT = ${CI_ENVIRONMENT:-production}
+CI_ENVIRONMENT = production
 
 #--------------------------------------------------------------------
 # APP
 #--------------------------------------------------------------------
 
-app.baseURL = '${APP_BASE_URL:-https://pikoy.aventra.my.id}/'
+app.baseURL = 'https://pikoy.aventra.my.id/'
 
 #--------------------------------------------------------------------
 # DATABASE
 #--------------------------------------------------------------------
 
-database.default.hostname = ${DB_HOST}
+database.default.hostname = ${DB_HOST:-database-project-igd2an}
 database.default.database = ${DATABASE_NAME:-diabetes}
 database.default.username = ${DATABASE_USERNAME:-diabetes}
 database.default.password = '${DATABASE_PASSWORD:-leaveempty1}'
@@ -74,7 +44,7 @@ session.regenerateDestroy = false
 # SECURITY
 #--------------------------------------------------------------------
 
-encryption.key = '${ENCRYPTION_KEY}'
+encryption.key = '${ENCRYPTION_KEY:-generate-secure-random-key-32-chars}'
 encryption.driver = OpenSSL
 
 cookie.prefix = 
@@ -90,141 +60,24 @@ cookie.sameSite = Lax
 
 toolbar.enable = false
 EOF
+    echo ".env file generated"
+fi
 
-echo ".env file generated successfully"
-
-# Display generated .env for debugging
-echo "=== Generated .env content (first 10 lines) ==="
-head -20 /var/www/html/.env
-echo "=============================================="
-
-echo "Setting permissions..."
-
-# Set proper permissions
+# Set permissions
 chown -R www-data:www-data /var/www/html
 chmod -R 755 /var/www/html/writable
 
-# Test PHP configuration
-echo "Testing PHP configuration..."
-php -v
-
-# Test if we can access the spark file
-echo "Testing spark file..."
-if [ -f /var/www/html/spark ]; then
-    echo "Spark file exists"
-else
-    echo "ERROR: Spark file not found!"
-fi
-
-# Change to application directory
-cd /var/www/html
-
-# Test database connection first
-echo "Testing database connection to ${DB_HOST}:${DATABASE_PORT:-3306}..."
-if php -r "
-\$host = '${DB_HOST}';
-\$port = ${DATABASE_PORT:-3306};
-\$socket = fsockopen(\$host, \$port, \$errno, \$errstr, 5);
-if (!\$socket) {
-    echo 'ERROR: Cannot connect to database at ' . \$host . ':' . \$port . ' - ' . \$errstr . ' (' . \$errno . ')' . PHP_EOL;
-    exit(1);
-} else {
-    echo 'SUCCESS: Database connection test passed' . PHP_EOL;
-    fclose(\$socket);
-}
-"; then
-    echo "Database connection test passed"
-    
-    # Create tables using raw SQL (bypass CodeIgniter migrations)
-    echo "Creating database tables..."
+# Create database tables if needed (optional)
+if [ "${CREATE_TABLES:-true}" = "true" ]; then
+    echo "Creating database tables if needed..."
     if command -v mysql >/dev/null 2>&1; then
-        # Use mysql client if available
-        if mysql -h "${DB_HOST}" -u "${DATABASE_USERNAME:-diabetes}" -p"${DATABASE_PASSWORD:-leaveempty1}" "${DATABASE_NAME:-diabetes}" < /var/www/html/docker/create-tables.sql 2>&1; then
-            echo "Database tables created successfully"
-        else
-            echo "WARNING: Failed to create tables with mysql client, trying PHP..."
-            # Fallback to PHP
-            if php -r "
-            \$conn = new mysqli('${DB_HOST}', '${DATABASE_USERNAME:-diabetes}', '${DATABASE_PASSWORD:-leaveempty1}', '${DATABASE_NAME:-diabetes}', ${DATABASE_PORT:-3306});
-            if (\$conn->connect_error) {
-                echo 'PHP MySQL Connection failed: ' . \$conn->connect_error . PHP_EOL;
-                exit(1);
-            }
-            \$sql = file_get_contents('/var/www/html/docker/create-tables.sql');
-            if (\$conn->multi_query(\$sql)) {
-                echo 'Tables created successfully using PHP' . PHP_EOL;
-            } else {
-                echo 'Error creating tables: ' . \$conn->error . PHP_EOL;
-            }
-            \$conn->close();
-            "; then
-                echo "Database tables created successfully using PHP"
-            else
-                echo "WARNING: Failed to create tables using PHP"
-            fi
-        fi
-    else
-        echo "WARNING: mysql client not found, skipping table creation"
-    fi
-else
-    echo "WARNING: Database connection test failed"
-fi
-
-# Run database migrations if needed (disabled by default to prevent crashes)
-if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
-    echo "Running database migrations..."
-    MIGRATION_OUTPUT=$(php spark migrate --force 2>&1)
-    MIGRATION_EXIT_CODE=$?
-    echo "Migration output: $MIGRATION_OUTPUT"
-    if [ $MIGRATION_EXIT_CODE -eq 0 ]; then
-        echo "Database migrations completed successfully"
-    else
-        echo "WARNING: Database migrations failed (exit code: $MIGRATION_EXIT_CODE), continuing anyway..."
-    fi
-fi
-
-# Run database seeders if needed (disabled by default to prevent crashes)
-if [ "${RUN_SEEDERS:-false}" = "true" ]; then
-    echo "Running database seeders..."
-    SEEDER_OUTPUT=$(php spark db:seed PetugasSeeder 2>&1)
-    SEEDER_EXIT_CODE=$?
-    echo "Seeder output: $SEEDER_OUTPUT"
-    if [ $SEEDER_EXIT_CODE -eq 0 ]; then
-        echo "Database seeders completed successfully"
-    else
-        echo "WARNING: Database seeders failed (exit code: $SEEDER_EXIT_CODE), continuing anyway..."
+        mysql -h "${DB_HOST:-database-project-igd2an}" \
+              -u "${DATABASE_USERNAME:-diabetes}" \
+              -p"${DATABASE_PASSWORD:-leaveempty1}" \
+              "${DATABASE_NAME:-diabetes}" \
+              < /var/www/html/docker/create-tables.sql 2>/dev/null || true
     fi
 fi
 
 echo "Starting Apache..."
-
-# Start Apache in background to test it
-echo "Starting Apache in background for testing..."
-apache2-foreground &
-APACHE_PID=$!
-
-# Wait a bit for Apache to start
-sleep 5
-
-# Test if Apache is responding
-echo "Testing Apache response..."
-if curl -f http://localhost/ > /dev/null 2>&1; then
-    echo "✅ Apache is running and responding correctly"
-    
-    # Test our test.php file
-    if curl -f http://localhost/test.php > /dev/null 2>&1; then
-        echo "✅ test.php is accessible"
-    else
-        echo "⚠️ test.php is not accessible (might be 404 or error)"
-    fi
-else
-    echo "❌ Apache is not responding to requests"
-    echo "Checking Apache process..."
-    ps aux | grep apache
-    echo "Apache error log (last 20 lines):"
-    tail -20 /var/log/apache2/error.log || echo "No error log found"
-fi
-
-# Bring Apache back to foreground
-echo "Bringing Apache to foreground..."
-wait $APACHE_PID
+exec apache2-foreground
