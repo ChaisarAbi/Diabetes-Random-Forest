@@ -7,7 +7,7 @@ FROM php:8.2-apache
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
+# Install system dependencies including Python build tools
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -22,6 +22,16 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-dev \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    libblas-dev \
+    liblapack-dev \
+    libatlas-base-dev \
+    gfortran \
+    pkg-config \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -41,12 +51,12 @@ RUN docker-php-ext-install \
 # Install and configure Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Python ML dependencies
+# Install Python ML dependencies with compatible versions
 RUN pip3 install --no-cache-dir \
-    numpy==1.24.3 \
-    pandas==2.0.3 \
-    scikit-learn==1.3.0 \
-    joblib==1.3.2
+    numpy==1.23.5 \
+    pandas==1.5.3 \
+    scikit-learn==1.2.2 \
+    joblib==1.2.0
 
 # Enable Apache modules
 RUN a2enmod rewrite headers
@@ -67,10 +77,10 @@ RUN chown -R www-data:www-data /var/www/html \
 # Create Python virtual environment for ML
 RUN python3 -m venv /opt/ml-venv \
     && /opt/ml-venv/bin/pip install --no-cache-dir \
-        numpy==1.24.3 \
-        pandas==2.0.3 \
-        scikit-learn==1.3.0 \
-        joblib==1.3.2
+        numpy==1.23.5 \
+        pandas==1.5.3 \
+        scikit-learn==1.2.2 \
+        joblib==1.2.0
 
 # Copy Python ML files
 COPY app/Python /var/www/html/app/Python
