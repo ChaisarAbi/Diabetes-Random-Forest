@@ -91,9 +91,8 @@ ENV APACHE_RUN_GROUP www-data
 ENV PYTHONPATH /opt/ml-venv/lib/python3.10/site-packages
 ENV PATH="/opt/ml-venv/bin:${PATH}"
 
-# Update Apache configuration
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+# Configure Apache ServerName to suppress warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Expose port
 EXPOSE 80
