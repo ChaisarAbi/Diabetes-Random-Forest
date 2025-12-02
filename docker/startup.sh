@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -e  # Exit on error
+
+echo "=== Starting Diabetes Prediction System ==="
+echo "Generating .env file from environment variables..."
+
 # Generate .env file from environment variables
 cat > /var/www/html/.env <<EOF
 #--------------------------------------------------------------------
@@ -57,19 +62,35 @@ cookie.sameSite = Lax
 toolbar.enable = false
 EOF
 
+echo ".env file generated successfully"
+echo "Setting permissions..."
+
 # Set proper permissions
 chown -R www-data:www-data /var/www/html
 chmod -R 755 /var/www/html/writable
 
+# Change to application directory
+cd /var/www/html
+
 # Run database migrations if needed
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
-    cd /var/www/html && php spark migrate --force
+    echo "Running database migrations..."
+    if php spark migrate --force; then
+        echo "Database migrations completed successfully"
+    else
+        echo "WARNING: Database migrations failed, continuing anyway..."
+    fi
 fi
 
 # Run database seeders if needed
 if [ "${RUN_SEEDERS:-true}" = "true" ]; then
-    cd /var/www/html && php spark db:seed PetugasSeeder
+    echo "Running database seeders..."
+    if php spark db:seed PetugasSeeder; then
+        echo "Database seeders completed successfully"
+    else
+        echo "WARNING: Database seeders failed, continuing anyway..."
+    fi
 fi
 
-# Start Apache
+echo "Starting Apache..."
 exec apache2-foreground
