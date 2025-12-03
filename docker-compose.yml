@@ -10,13 +10,13 @@ services:
       - "8080:80"
     environment:
       - CI_ENVIRONMENT=production
-      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8080}
+      - APP_BASE_URL=${APP_BASE_URL:-https://pikoy.aventra.my.id}
       - DATABASE_HOST=db
       - DATABASE_NAME=${DATABASE_NAME:-diabetes_db}
       - DATABASE_USERNAME=${DATABASE_USERNAME:-diabetes_user}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-diabetes_pass}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-SecurePassword123!@#}
       - DATABASE_PORT=3306
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-secure-encryption-key-here}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-21431c8f632ae04b95fc6a9a881358ee03744c2bab3ca1d4f66bb392886be505}
       - SESSION_DRIVER=files
       - SESSION_SAVE_PATH=/var/www/html/writable/session
     volumes:
@@ -28,7 +28,7 @@ services:
     networks:
       - diabetes-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -40,10 +40,10 @@ services:
     container_name: diabetes-predict-db
     restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpass}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-RootSecurePassword456!@#}
       - MYSQL_DATABASE=${DATABASE_NAME:-diabetes_db}
       - MYSQL_USER=${DATABASE_USERNAME:-diabetes_user}
-      - MYSQL_PASSWORD=${DATABASE_PASSWORD:-diabetes_pass}
+      - MYSQL_PASSWORD=${DATABASE_PASSWORD:-SecurePassword123!@#}
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql-init:/docker-entrypoint-initdb.d

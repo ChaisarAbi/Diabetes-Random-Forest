@@ -22,13 +22,13 @@ app.baseURL = 'https://pikoy.aventra.my.id/'
 # DATABASE
 #--------------------------------------------------------------------
 
-database.default.hostname = ${DB_HOST:-database-project-igd2an}
-database.default.database = ${DATABASE_NAME:-diabetes}
-database.default.username = ${DATABASE_USERNAME:-diabetes}
-database.default.password = '${DATABASE_PASSWORD:-leaveempty1}'
+database.default.hostname = \${DATABASE_HOST:-db}
+database.default.database = \${DATABASE_NAME:-diabetes_db}
+database.default.username = \${DATABASE_USERNAME:-diabetes_user}
+database.default.password = '\${DATABASE_PASSWORD:-SecurePassword123!@#}'
 database.default.DBDriver = MySQLi
 database.default.DBPrefix = 
-database.default.port = ${DATABASE_PORT:-3306}
+database.default.port = \${DATABASE_PORT:-3306}
 
 #--------------------------------------------------------------------
 # SESSION
@@ -44,13 +44,13 @@ session.regenerateDestroy = false
 # SECURITY
 #--------------------------------------------------------------------
 
-encryption.key = '${ENCRYPTION_KEY:-generate-secure-random-key-32-chars}'
+encryption.key = '\${ENCRYPTION_KEY:-21431c8f632ae04b95fc6a9a881358ee03744c2bab3ca1d4f66bb392886be505}'
 encryption.driver = OpenSSL
 
 cookie.prefix = 
 cookie.domain = 
 cookie.path = /
-cookie.secure = false
+cookie.secure = true
 cookie.httpOnly = true
 cookie.sameSite = Lax
 
@@ -71,10 +71,10 @@ chmod -R 755 /var/www/html/writable
 if [ "${CREATE_TABLES:-true}" = "true" ]; then
     echo "Creating database tables if needed..."
     if command -v mysql >/dev/null 2>&1; then
-        mysql -h "${DB_HOST:-database-project-igd2an}" \
-              -u "${DATABASE_USERNAME:-diabetes}" \
-              -p"${DATABASE_PASSWORD:-leaveempty1}" \
-              "${DATABASE_NAME:-diabetes}" \
+        mysql -h "${DATABASE_HOST:-db}" \
+              -u "${DATABASE_USERNAME:-diabetes_user}" \
+              -p"${DATABASE_PASSWORD:-SecurePassword123!@#}" \
+              "${DATABASE_NAME:-diabetes_db}" \
               < /var/www/html/docker/create-tables.sql 2>/dev/null || true
     fi
 fi
